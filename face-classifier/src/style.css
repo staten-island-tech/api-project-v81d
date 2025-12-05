@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+html,
+body,
+* {
+  @apply p-0 m-0;
+}
+
+html,
+body,
+#app {
+  @apply w-full h-full;
+}
