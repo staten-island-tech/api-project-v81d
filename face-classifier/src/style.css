@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+:root {
+  --container-bg: black;
+  --text-color: white;
+}
+
 html,
 body,
 * {
@@ -12,6 +17,12 @@ body,
   @apply w-full h-full;
 }
 
-.form-container {
-  @apply flex flex-col justify-center items-center w-full h-full bg-black;
+.camera-container {
+  @apply flex flex-col justify-center items-center;
+  @apply w-full h-full;
+  @apply bg-(--container-bg) text-(--text-color);
+}
+
+.camera-container__camera {
+  @apply rounded-lg;
 }
