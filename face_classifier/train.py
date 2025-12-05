@@ -20,11 +20,6 @@ def image_generator(paths, label):
         yield image, label
 
 
-negative_generator = image_generator(glob.glob("datasets/negative/*.jpg"), -1)
-neutral_generator = image_generator(glob.glob("datasets/neutral/*.jpg"), 0)
-positive_generator = image_generator(glob.glob("datasets/positive/*.jpg"), 1)
-
-
 def combined_generator():
     for generator in [negative_generator, neutral_generator, positive_generator]:
         for image, label in generator:
@@ -36,6 +31,10 @@ def process_image_label(image_label):
     fd = hog.transform(image)
     return fd, label
 
+
+negative_generator = image_generator(glob.glob("datasets/negative/*.jpg"), -1)
+neutral_generator = image_generator(glob.glob("datasets/neutral/*.jpg"), 0)
+positive_generator = image_generator(glob.glob("datasets/positive/*.jpg"), 1)
 
 X_list = []
 y_list = []
