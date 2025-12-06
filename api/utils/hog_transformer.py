@@ -8,7 +8,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 class HOGTransformer(BaseEstimator, TransformerMixin):
     def __init__(
         self,
-        resize_shape=(128, 64),
+        resize_shape=(64, 64),
         pixels_per_cell=(6, 6),
         cells_per_block=(3, 3),
     ):

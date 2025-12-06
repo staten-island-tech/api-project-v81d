@@ -1,84 +1,149 @@
+# %%
+# Import packages and modules
+
 import glob
+import os
 
 import numpy as np
-from joblib import Parallel, delayed, dump
+from joblib import dump, load
 from skimage.io import imread
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
+from sklearnex import patch_sklearn
 from tqdm import tqdm
 
+from utils.color_lbp_extractor import extract_color_lbp
 from utils.hog_transformer import HOGTransformer
 
+# %%
+# Path/location definitions
+
+root = input("Root Directory: ")
+
+# %%
+# Definitions
+
 hog = HOGTransformer()
-batch_size = 512
+
+patch_sklearn()  # for Intel CPUs
 
 
 def image_generator(paths, label):
     for file in paths:
-        image = imread(file).astype("float32") / 255.0
+        image = imread(file)
         yield image, label
 
 
-def combined_generator():
-    for generator in [negative_generator, neutral_generator, positive_generator]:
-        for image, label in generator:
+def create_generators(datasets_path):
+    generators = []
+
+    for subfolder in os.listdir(datasets_path):
+        subfolder_path = os.path.join(datasets_path, subfolder)
+        if not os.path.isdir(subfolder_path):
+            continue  # skip files
+
+        label = subfolder
+
+        image_paths = glob.glob(os.path.join(subfolder_path, "*.jpg")) + glob.glob(
+            os.path.join(subfolder_path, "*.png")
+        )
+
+        generators.append(image_generator(image_paths, label))
+
+    return generators
+
+
+def combined_generator(generators):
+    for gen in generators:
+        for image, label in gen:
             yield image, label
 
 
 def process_image_label(image_label):
     image, label = image_label
-    fd = hog.transform(image)
-    return fd, label
+
+    lbp_features = extract_color_lbp(image)
+    hog_features = hog.transform(image)
+    features = np.hstack([lbp_features, hog_features])
+
+    return features, label
 
 
-negative_generator = image_generator(glob.glob("datasets/negative/*.jpg"), -1)
-neutral_generator = image_generator(glob.glob("datasets/neutral/*.jpg"), 0)
-positive_generator = image_generator(glob.glob("datasets/positive/*.jpg"), 1)
+# %%
+# Initialize generators
+
+datasets_path = input("Datasets Path: ")
+
+generators = create_generators(datasets_path)
+generator = combined_generator(generators)
+
+total_images = sum(
+    len(glob.glob(os.path.join(datasets_path, folder, "*.jpg")))
+    + len(glob.glob(os.path.join(datasets_path, folder, "*.png")))
+    for folder in os.listdir(datasets_path)
+    if os.path.isdir(os.path.join(datasets_path, folder))
+)
+
+# %%
+# Extract feature embeddings with LBP
 
 X_list = []
 y_list = []
 
-generator = combined_generator()
+for image_label in tqdm(generator, total=total_images, desc="Extracting features"):
+    features, label = process_image_label(image_label)
+    X_list.append(features)
+    y_list.append(label)
 
-progress_bar = tqdm(
-    total=len(glob.glob("datasets/negative/*.jpg"))
-    + len(glob.glob("datasets/neutral/*.jpg"))
-    + len(glob.glob("datasets/positive/*.jpg")),
-    desc="Running HOG transforms",
-)
-
-while True:
-    batch = []
-    try:
-        for _ in range(batch_size):
-            batch.append(next(generator))
-    except StopIteration:
-        pass  # no more
-
-    if not batch:
-        break
-
-    results = Parallel(n_jobs=-1)(delayed(process_image_label)(item) for item in batch)
-    X_batch, y_batch = zip(*results)
-    X_list.append(np.array(X_batch))
-    y_list.append(np.array(y_batch))
-
-    progress_bar.update(len(batch))
-
-progress_bar.close()
+# %%
+# Save embeddings to (X, y)
 
 X = np.vstack(X_list)
-y = np.concatenate(y_list)
+y = np.array(y_list)
+
+# %%
+# Dump (X, y) to file
+
+dump((X, y), os.path.join(root, "features.joblib"))
+
+# %%
+# Load (X, y) from file
+
+X, y = load(os.path.join(root, "features.joblib"))
+
+# %%
+# Train the model
+
+print("Starting model training...")
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, shuffle=True
 )
 
-clf = SGDClassifier(loss="hinge", max_iter=1000, tol=1e-3, verbose=1)
+sgd = SGDClassifier(
+    loss="log_loss",
+    max_iter=5000,
+    tol=1e-4,
+    random_state=42,
+    class_weight="balanced",
+    verbose=1,
+)
+clf = CalibratedClassifierCV(estimator=sgd, method="sigmoid", cv=5)
 clf.fit(X_train, y_train)
 
-dump(clf, "hog_svm_model.joblib")
+# %%
+# Dump model to file
+
+dump(clf, os.path.join(root, "moodlens_model.joblib"))
+
+# %%
+# Create classification report
+
+print("Creating classification report...")
 
 y_pred = clf.predict(X_test)
+# y_proba = clf.predict_proba(X_test)
+
 print(classification_report(y_test, y_pred))
