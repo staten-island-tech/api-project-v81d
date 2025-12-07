@@ -41,6 +41,8 @@ CORS(app, resources={r"/*": {"origins": origins}})
 
 torch.backends.cudnn.enabled = False
 
+detector = FER(mtcnn=True)  # load globally
+
 
 def generate_handshake_token(secret: str, validity_seconds: int = 60) -> str:
     timestamp = int(time.time())
@@ -75,8 +77,6 @@ def predict():
 
         if image is None:
             return jsonify({"error": "Could not decode image."}), 400
-
-        detector = FER(mtcnn=True)
 
         results = detector.detect_emotions(image)
 
