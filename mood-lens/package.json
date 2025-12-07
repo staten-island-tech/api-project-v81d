@@ -1,5 +1,5 @@
 {
-  "name": "face-classifier",
+  "name": "mood-lens",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,12 +9,18 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "flyonui": "^2.4.1",
     "typescript": "~5.9.3",
     "vite": "^7.2.4",
     "vite-plugin-mkcert": "^1.17.9"
   },
   "dependencies": {
+    "@fontsource/noto-sans": "^5.2.10",
+    "@fontsource/noto-sans-jp": "^5.2.8",
+    "@fontsource/outfit": "^5.2.8",
+    "@fontsource/vazirmatn": "^5.2.8",
     "@tailwindcss/vite": "^4.1.17",
+    "daisyui": "^5.5.8",
     "tailwindcss": "^4.1.17"
   }
 }

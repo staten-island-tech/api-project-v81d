@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@plugin "daisyui";
+
+@theme {
+  --font-sans: "Outfit", "Noto Sans JP", "Noto Sans", "Vazirmatn", sans-serif;
+}
+
+html,
+body,
+#app {
+  @apply p-0 m-0 w-full h-full;
+  @apply font-sans;
+}
