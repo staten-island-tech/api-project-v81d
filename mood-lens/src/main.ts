@@ -5,13 +5,17 @@ import "@fontsource/noto-sans-jp";
 import "@fontsource/noto-sans";
 import "@fontsource/vazirmatn";
 
+const DEFAULT_PREDICTION_ENDPOINT = "http://localhost:5000/predict";
+const DEFAULT_API_SECRET = "public";
+
 const dataStates: Record<string, any> = new Proxy(
   {
     captured: false,
     uploaded: false,
     acknowledged: false,
-    predictionEndpoint: localStorage.getItem("predictionEndpoint") ?? "",
-    apiSecret: localStorage.getItem("apiSecret") ?? "",
+    predictionEndpoint:
+      localStorage.getItem("predictionEndpoint") ?? DEFAULT_PREDICTION_ENDPOINT,
+    apiSecret: localStorage.getItem("apiSecret") ?? DEFAULT_API_SECRET,
   },
   {
     set(target: Record<string, any>, property: string, value: any): true {
@@ -24,6 +28,9 @@ const dataStates: Record<string, any> = new Proxy(
     },
   },
 );
+
+localStorage.setItem("predictionEndpoint", dataStates.predictionEndpoint);
+localStorage.setItem("apiSecret", dataStates.apiSecret);
 
 const app: HTMLDivElement = document.querySelector("#app")!;
 const container: HTMLDivElement = document.createElement("div");
@@ -161,18 +168,18 @@ function buildSettingsModal() {
     "#settings-button-save",
   )!;
 
+  endpointInput.value = dataStates.predictionEndpoint;
+  apiSecretInput.value = dataStates.apiSecret;
+
   defaultsButton.addEventListener("click", () => {
-    const predictionEndpoint: string = "http://localhost:5000/predict";
-    const apiSecret: string = "759426";
+    endpointInput.value = DEFAULT_PREDICTION_ENDPOINT;
+    apiSecretInput.value = DEFAULT_API_SECRET;
 
-    endpointInput.value = predictionEndpoint;
-    apiSecretInput.value = apiSecret;
+    dataStates.predictionEndpoint = DEFAULT_PREDICTION_ENDPOINT;
+    dataStates.apiSecret = DEFAULT_API_SECRET;
 
-    dataStates.predictionEndpoint = predictionEndpoint;
-    dataStates.apiSecret = apiSecret;
-
-    localStorage.setItem("predictionEndpoint", predictionEndpoint);
-    localStorage.setItem("apiSecret", apiSecret);
+    localStorage.setItem("predictionEndpoint", DEFAULT_PREDICTION_ENDPOINT);
+    localStorage.setItem("apiSecret", DEFAULT_API_SECRET);
 
     alertText.textContent = "Settings restored to defaults.";
     alertText.parentElement!.classList.remove("hidden");
