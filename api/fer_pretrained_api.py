@@ -43,10 +43,15 @@ def predict():
 
         detector = FER(mtcnn=True)
 
-        result = detector.detect_emotions(image)[0]
+        results = detector.detect_emotions(image)
+
+        if not results:
+            return jsonify({"error": "No faces detected."}), 400
+
+        result = results[0]
         top_emotion, _ = detector.top_emotion(image)
 
-        return jsonify({ **result, "top_emotion": top_emotion })
+        return jsonify({**result, "top_emotion": top_emotion})
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
