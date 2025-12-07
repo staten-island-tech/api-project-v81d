@@ -1,4 +1,8 @@
+import base64
+import hashlib
+import hmac
 import os
+import time
 import traceback
 
 import cv2
@@ -8,12 +12,28 @@ from dotenv import load_dotenv
 from fer.fer import FER
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from rich.console import Console
+from rich.panel import Panel
 
 load_dotenv()
 
+api_secret = os.getenv("API_SECRET", "")
+
+console = Console()
+console.clear()
+
+panel = Panel.fit(
+    f"[bold yellow]Your API secret is: [cyan]{api_secret}[/]\n"
+    "[red bold]Do not share this secret with unauthorized users![/]",
+    title="Session Secret",
+    border_style="yellow",
+)
+
+console.print(panel)
+
 app = Flask(__name__)
 
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
+app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024  # 2 MB
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 
 origins = os.getenv("ALLOWED_ORIGINS", "").split("|")
@@ -22,12 +42,27 @@ CORS(app, resources={r"/*": {"origins": origins}})
 torch.backends.cudnn.enabled = False
 
 
+def generate_handshake_token(secret: str, validity_seconds: int = 60) -> str:
+    timestamp = int(time.time())
+    expires = timestamp + validity_seconds
+    message = str(expires).encode()
+    signature = hmac.new(secret.encode(), message, hashlib.sha256).digest()
+    token = base64.urlsafe_b64encode(message + b"." + signature).decode()
+
+    return token
+
+
 def validate_image(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.route("/predict", methods=["POST"])
 def predict():
+    auth_header = request.headers.get("Authorization", "")
+
+    if auth_header != f"Bearer {api_secret}":
+        return jsonify({"error": "Invalid or missing API token."}), 401
+
     if "image" not in request.files:
         return jsonify({"error": "No image uploaded."}), 400
 
@@ -51,11 +86,17 @@ def predict():
         result = results[0]
         top_emotion, _ = detector.top_emotion(image)
 
-        return jsonify({**result, "top_emotion": top_emotion})
+        return jsonify(
+            {
+                **result,
+                "topEmotion": top_emotion,
+                "handshake": generate_handshake_token(api_secret),
+            }
+        )
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)
