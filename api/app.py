@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 from fer.fer import FER
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from rich.console import Console
 from rich.panel import Panel
 
@@ -39,7 +41,16 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 origins = os.getenv("ALLOWED_ORIGINS", "").split("|")
 CORS(app, resources={r"/*": {"origins": origins}})
 
-torch.backends.cudnn.enabled = False
+# Rate limiter
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    headers_enabled=True,
+    storage_uri="memory://",
+)
+limiter.init_app(app)
+
+torch.backends.cudnn.enabled = False  # no CUDA
 
 detector = FER(mtcnn=True)  # load globally
 
@@ -59,6 +70,7 @@ def validate_image(filename):
 
 
 @app.route("/predict", methods=["POST"])
+@limiter.limit("1 per 10 second")
 def predict():
     auth_header = request.headers.get("Authorization", "")
 

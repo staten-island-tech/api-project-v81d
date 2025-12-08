@@ -400,9 +400,24 @@ async function predictImage(file: File): Promise<any> {
       body: formData,
     });
 
-    const result = await response.json();
+    if (response.status === 429)
+      throw new Error(
+        "Rate limit exceeded. Please try again after a few seconds.",
+      );
 
-    if (!response.ok) throw new Error(result.error || "Unknown server error.");
+    if (!response.ok) {
+      let result: any;
+
+      try {
+        result = await response.json();
+      } catch {
+        result = { error: "Unknown server error" };
+      }
+
+      throw new Error(result.error || "Unknown server error");
+    }
+
+    const result = await response.json();
 
     if (!(await verifyHandshakeToken(result.handshake, dataStates.apiSecret)))
       throw new Error("The prediction endpoint is not compatible.");
