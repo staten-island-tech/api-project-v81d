@@ -255,7 +255,7 @@ function buildFormCard() {
     <p>Upload an image or use the embedded camera to classify your mood!</p>
     <fieldset class="fieldset">
       <legend class="fieldset-legend text-primary-content">Pick an image</legend>
-      <input id="form-input-file" class="file-input file-input-md w-full rounded-lg text-base-content" type="file" accept="image/png,image/jpeg" />
+      <input id="form-input-file" class="file-input file-input-md w-full rounded-lg text-base-content disabled:text-base-content/20" type="file" accept="image/png,image/jpeg" />
       <label class="label">Max size 2 MB</label>
     </fieldset>
     <p>
@@ -317,7 +317,7 @@ function showAlert(title: string, message: string) {
     </div>
     <div class="modal-action">
       <form method="dialog">
-        <button class="btn btn-primary">Okay!</button>
+        <button class="btn">Okay!</button>
       </form>
     </div>
   </div>
@@ -571,7 +571,9 @@ navigator.mediaDevices
   .then(() => {
     buildFormCard();
 
-    const submitButton = document.querySelector("#form-button-submit")!;
+    const submitButton: HTMLButtonElement = document.querySelector(
+      "#form-button-submit",
+    )!;
     const fileInput: HTMLInputElement =
       document.querySelector("#form-input-file")!;
     const consentInput: HTMLInputElement = document.querySelector(
@@ -594,6 +596,11 @@ navigator.mediaDevices
         );
         return;
       }
+
+      const originalLabel: string = submitButton.textContent;
+
+      submitButton.innerHTML = `<span class="loading loading-dots loading-md"></span>`;
+      submitButton.disabled = true;
 
       if (dataStates.captured) {
         const file: File | null = await capturedImageToFile();
@@ -646,6 +653,9 @@ navigator.mediaDevices
           "Missing File",
           "Please upload a valid file or capture a frame before submitting.",
         );
+
+      submitButton.textContent = originalLabel;
+      submitButton.disabled = false;
     });
 
     fileInput.addEventListener("change", () => {
