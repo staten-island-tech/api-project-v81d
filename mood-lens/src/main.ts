@@ -396,6 +396,7 @@ async function predictImage(file: File): Promise<any> {
       method: "POST",
       headers: {
         Authorization: `Bearer ${dataStates.apiSecret}`,
+        skip_zrok_interstitial: "1",
       },
       body: formData,
     });
