@@ -5,7 +5,7 @@ import "@fontsource/noto-sans-jp";
 import "@fontsource/noto-sans";
 import "@fontsource/vazirmatn";
 
-const DEFAULT_PREDICTION_ENDPOINT = "http://localhost:5000/predict";
+const DEFAULT_PREDICTION_ENDPOINT = "https://moodlens.share.zrok.io/predict";
 const DEFAULT_API_SECRET = "public";
 
 const dataStates: Record<string, any> = new Proxy(
