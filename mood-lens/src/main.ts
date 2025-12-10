@@ -5,7 +5,8 @@ import "@fontsource/noto-sans-jp";
 import "@fontsource/noto-sans";
 import "@fontsource/vazirmatn";
 
-const DEFAULT_PREDICTION_ENDPOINT = "https://moodlens.share.zrok.io/predict";
+const DEFAULT_PREDICTION_ENDPOINT =
+  "https://mood-lens-publicapi.gleeze.com/predict";
 const DEFAULT_API_SECRET = "public";
 
 const dataStates: Record<string, any> = new Proxy(
@@ -396,7 +397,6 @@ async function predictImage(file: File): Promise<any> {
       method: "POST",
       headers: {
         Authorization: `Bearer ${dataStates.apiSecret}`,
-        skip_zrok_interstitial: "1",
       },
       body: formData,
     });
@@ -412,10 +412,10 @@ async function predictImage(file: File): Promise<any> {
       try {
         result = await response.json();
       } catch {
-        result = { error: "Unknown server error" };
+        result = { error: "Unknown server error." };
       }
 
-      throw new Error(result.error || "Unknown server error");
+      throw new Error(result.error || "Unknown server error.");
     }
 
     const result = await response.json();
